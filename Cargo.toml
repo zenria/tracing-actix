@@ -1,0 +1,17 @@
+[package]
+name = "tracing-actix"
+version = "0.0.1"
+authors = ["Philippe GASSMANN <philoops@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/zenria/tracing-actix"
+description = "Allow tracing actor futures in actix"
+keywords=["tracing", "actix"]
+exclude = [
+    "*.iml",
+]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tracing = "0.1.9"
+actix="0.8"
+futures="0.1"
