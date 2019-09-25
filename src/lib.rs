@@ -5,6 +5,8 @@ use actix::{Actor, ActorFuture};
 use futures::Async;
 use tracing::Span;
 
+/// Extension trait allowing actor futures to be instrumented with
+/// a `tracing` `Span`.
 pub trait ActorInstrument: Sized {
     /// Instruments this type with the provided `Span`, returning an
     /// `ActorInstrumented` wrapper.
