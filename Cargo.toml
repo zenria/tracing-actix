@@ -5,7 +5,7 @@ authors = ["Philippe GASSMANN <philoops@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/zenria/tracing-actix"
 description = "Allow tracing actor futures in actix"
-keywords=["tracing", "actix"]
+keywords=["logging", "tracing", "actix"]
 exclude = [
     "*.iml",
 ]
