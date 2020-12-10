@@ -139,10 +139,7 @@ pub trait ActorInstrument: ActorFuture + Unpin + Sized {
     ///
     /// When the wrapped actor future is polled, the attached `Span`
     /// will be entered for the duration of the poll.
-    fn actor_instrument(
-        self,
-        span: Span,
-    ) -> ActorInstrumented<Self> {
+    fn actor_instrument(self, span: Span) -> ActorInstrumented<Self> {
         ActorInstrumented { inner: self, span }
     }
 }
