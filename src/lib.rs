@@ -130,10 +130,11 @@ use std::{
     task::{Context, Poll},
 };
 use tracing::Span;
+use pin_project_lite::pin_project;
 
 /// Extension trait allowing actor futures to be instrumented with
 /// a `tracing` `Span`.
-pub trait ActorInstrument: ActorFuture + Unpin + Sized {
+pub trait ActorInstrument: Sized {
     /// Instruments this type with the provided `Span`, returning an
     /// `ActorInstrumented` wrapper.
     ///
@@ -142,37 +143,42 @@ pub trait ActorInstrument: ActorFuture + Unpin + Sized {
     fn actor_instrument(self, span: Span) -> ActorInstrumented<Self> {
         ActorInstrumented { inner: self, span }
     }
-}
 
-impl<T: ActorFuture + Unpin + Sized> ActorInstrument for T {}
-
-/// An actor future that has been instrumented with a `tracing` span.
-#[derive(Debug, Clone)]
-pub struct ActorInstrumented<T>
-where
-    T: ActorFuture,
-{
-    inner: T,
-    span: Span,
-}
-
-impl<T: ActorFuture + Unpin> ActorFuture for ActorInstrumented<T> {
-    type Output = <T as ActorFuture>::Output;
-    type Actor = <T as ActorFuture>::Actor;
-
-    fn poll(
-        mut self: Pin<&mut Self>,
-        srv: &mut Self::Actor,
-        ctx: &mut <Self::Actor as Actor>::Context,
-        task: &mut Context<'_>,
-    ) -> Poll<Self::Output> {
-        let span = self.span.clone();
-        let _enter = span.enter();
-        ActorFuture::poll(Pin::new(self.actor_mut()), srv, ctx, task)
+    #[inline]
+    fn in_current_actor_span(self) -> ActorInstrumented<Self> {
+        self.actor_instrument(Span::current())
     }
 }
 
-impl<T: ActorFuture + Unpin> ActorInstrumented<T> {
+impl<T: Sized> ActorInstrument for T {}
+
+pin_project! {
+    /// An actor future that has been instrumented with a `tracing` span.
+    #[derive(Debug, Clone)]
+    pub struct ActorInstrumented<T>
+    {
+        #[pin]
+        inner: T,
+        span: Span,
+    }
+}
+
+impl<T: ActorFuture<U>, U: Actor> ActorFuture<U> for ActorInstrumented<T> {
+    type Output = <T as ActorFuture<U>>::Output;
+
+    fn poll(
+        self: Pin<&mut Self>,
+        srv: &mut U,
+        ctx: &mut U::Context,
+        task: &mut Context<'_>,
+    ) -> Poll<Self::Output> {
+        let this = self.project();
+        let _enter = this.span.enter();
+        this.inner.poll(srv, ctx, task)
+    }
+}
+
+impl<T> ActorInstrumented<T> {
     /// Borrows the `Span` that this type is instrumented by.
     pub fn span(&self) -> &Span {
         &self.span
@@ -183,7 +189,30 @@ impl<T: ActorFuture + Unpin> ActorInstrumented<T> {
         &mut self.span
     }
 
-    pub fn actor_mut(&mut self) -> &mut T {
+    /// Borrows the wrapped type.
+    pub fn inner(&self) -> &T {
+        &self.inner
+    }
+
+    /// Mutably borrows the wrapped type.
+    pub fn inner_mut(&mut self) -> &mut T {
         &mut self.inner
+    }
+
+    /// Get a pinned reference to the wrapped type.
+    pub fn inner_pin_ref(self: Pin<&Self>) -> Pin<&T> {
+        self.project_ref().inner
+    }
+
+    /// Get a pinned mutable reference to the wrapped type.
+    pub fn inner_pin_mut(self: Pin<&mut Self>) -> Pin<&mut T> {
+        self.project().inner
+    }
+
+    /// Consumes the `Instrumented`, returning the wrapped type.
+    ///
+    /// Note that this drops the span.
+    pub fn into_inner(self) -> T {
+        self.inner
     }
 }
