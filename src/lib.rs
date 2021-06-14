@@ -113,7 +113,7 @@
 //!         // `actix::fut::Ready` ActorFutures work fine though.
 //!         let span = span!(Level::INFO, "ping");
 //!         Box::pin(
-//!             ready::<Pong, Self>(Pong {})
+//!             ready::<Pong>(Pong {})
 //!                 .actor_instrument(span)
 //!                 .map(|pong, _this, _ctx| {
 //!                     // the pong event occurs in the ping span, even though this is async.
@@ -125,12 +125,12 @@
 //! }
 //! ```
 use actix::{Actor, ActorFuture};
+use pin_project_lite::pin_project;
 use std::{
     pin::Pin,
     task::{Context, Poll},
 };
 use tracing::Span;
-use pin_project_lite::pin_project;
 
 /// Extension trait allowing actor futures to be instrumented with
 /// a `tracing` `Span`.
