@@ -1,3 +1,7 @@
+# 0.4.0
+
+Bump actix version to 0.13
+
 # 0.3.0
 
 Bump actix version to 0.12 
